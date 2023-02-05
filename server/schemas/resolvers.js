@@ -18,11 +18,34 @@ const resolvers = {
             let token
 
             if (correctPw) {
-                return token = signToken(user)
+                token = signToken(user)
+            } else {
+                return
             }
             
             const auth = { token, user }
             return auth
+        },
+
+        addUser: async (parent, args, context, info) => {
+            return await User.create(args)
+        },
+
+        saveBook: async (parent, { _id, input }, context, info) => {
+            return await User.findOneAndUpdate( 
+                {_id},
+                {$addToSet: { savedBooks: input}},
+                { new: true } 
+            )
+        },
+
+        removeBook: async (parent, { _id, bookId }, context, info) => {
+            // may need to find book first
+            return await User.findOneAndUpdate(
+                {_id},
+                { $pull: {savedBooks: bookId}},
+                {new: true}
+            )
         }
     }
 }
