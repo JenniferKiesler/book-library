@@ -1,14 +1,15 @@
 const express = require('express');
-const { ApolloServer } = require('@apollo/server')
-const { expressMiddleware } = require('@apollo/server/express4')
 const path = require('path');
-const { typeDefs, resolvers } = require('./schemas/index')
 const db = require('./config/connection');
-const routes = require('./routes');
+const { ApolloServer } = require('apollo-server-express')
+const { authMiddleware } = require('./utils/auth')
+const { typeDefs, resolvers } = require('./schemas')
+// const routes = require('./routes');
 
 const server = new ApolloServer({
   typeDefs,
-  resolvers
+  resolvers,
+	context: authMiddleware
 })
 
 const app = express();
@@ -22,11 +23,11 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
 }
 
-app.use(routes);
+// app.use(routes);
 
 const startApolloServer = async (typeDefs, resolvers) => {
 	await server.start();
-	app.use("/graphql", expressMiddleware(server));
+	server.applyMiddleware({app})
 
 	db.once("open", () => {
 		app.listen(PORT, () => {
