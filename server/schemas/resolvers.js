@@ -4,12 +4,12 @@ const { signToken } = require('../utils/auth')
 
 const resolvers = {
     Query: {
-        me: async (parent, { _id, username }, context, info) => {
-            if (username) {
-                return await User.findOne({ username })
+        me: async (parent, args, context) => {
+            if (context.user) {
+                const userData = await User.findOne({ _id: context.user._id })
+                .select('-__v -password')
+                return userData;
             }
-
-            return await User.findById(_id)
         }
     },
     Mutation: {
@@ -28,33 +28,37 @@ const resolvers = {
 
             const token = signToken(user)
             
-            const auth = { token, user }
-            return auth
+            return { token, user }
         },
 
         addUser: async (parent, args, context, info) => {
             const user = await User.create(args)
             const token = signToken(user)
 
-            const auth = { token, user }
-            return auth 
+            return { token, user }
         },
 
-        saveBook: async (parent, { _id, input }, context, info) => {
-            return await User.findOneAndUpdate( 
-                {_id},
-                {$addToSet: { savedBooks: input}},
-                { new: true } 
-            )
+        saveBook: async (parent, { input }, context, info) => {
+            console.log(context.user)
+            if (context.user) {
+                const updatedUser = await User.findByIdAndUpdate( 
+                    {_id: context.user._id},
+                    {$addToSet: { savedBooks: input}},
+                    { new: true } 
+                )
+                return updatedUser
+            }
         },
 
-        removeBook: async (parent, { _id, bookId }, context, info) => {
-            // may need to find book first
-            return await User.findOneAndUpdate(
-                {_id},
-                { $pull: {savedBooks: bookId}},
-                {new: true}
-            )
+        removeBook: async (parent, { bookId }, context, info) => {
+            if (context.user) {
+                const updatedUser = await User.findByIdAndUpdate(
+                    {_id: context.user._id},
+                    { $pull: {savedBooks: bookId}},
+                    {new: true}
+                )
+                return updatedUser
+            }
         }
     }
 }
